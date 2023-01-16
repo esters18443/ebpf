@@ -1,0 +1,23 @@
+#!/usr/bin/env bpftrace
+BEGIN{
+    @print_flag = (uint64)0;
+}
+
+uretprobe:/bin/bash:readline
+{
+    @pid = pid;
+}
+
+tracepoint:syscalls:sys_enter_write
+{
+    $task = (struct task_struct *)curtask;
+    if((uint64)$task->real_parent->pid == @pid){
+        if (@print_flag!=pid) {
+            time("[%H:%M:%S ");
+            printf("%d %s]\n", pid,comm);
+            @print_flag = pid;
+        }
+        printf("%s", str(args->buf,args->count));
+    }
+}
+
